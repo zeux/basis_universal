@@ -153,9 +153,7 @@ namespace basisu
 			total_levels++;
 		}
 
-		// the code that follows assumes img stays valid while mips grows
-		assert(&img == &mips[0]);
-		assert(total_levels <= mips.capacity());
+		assert(mips.size() == 1);
 
 #if BASISU_USE_STB_IMAGE_RESIZE_FOR_MIPMAP_GEN
 		// Requires stb_image_resize
