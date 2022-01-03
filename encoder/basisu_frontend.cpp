@@ -350,6 +350,8 @@ namespace basisu
 		m_block_selector_cluster_index.resize(m_total_blocks);
 
 #if 0
+		job_pool::token token{0};
+
 		for (uint32_t block_index_iter = 0; block_index_iter < m_total_blocks; block_index_iter += N)
 		{
 			const uint32_t first_index = block_index_iter;
@@ -391,13 +393,13 @@ namespace basisu
 				}
 
 #ifndef __EMSCRIPTEN__
-				});
+				}, &token);
 #endif
 
 		}
 
 #ifndef __EMSCRIPTEN__
-		m_params.m_pJob_pool->wait_for_all();
+		m_params.m_pJob_pool->wait_for_all(&token);
 #endif
 
 		m_encoded_blocks.resize(m_total_blocks);
@@ -420,6 +422,8 @@ namespace basisu
 		for (uint32_t pass = 0; pass < NUM_PASSES; pass++)
 		{
 			debug_printf("init_global_codebooks: pass %u\n", pass);
+
+			job_pool::token token{0};
 
 			const uint32_t N = 128;
 			for (uint32_t block_index_iter = 0; block_index_iter < m_total_blocks; block_index_iter += N)
@@ -478,13 +482,13 @@ namespace basisu
 					} // block_index
 
 #ifndef __EMSCRIPTEN__
-					});
+					}, &token);
 #endif
 
 			}
 
 #ifndef __EMSCRIPTEN__
-			m_params.m_pJob_pool->wait_for_all();
+			m_params.m_pJob_pool->wait_for_all(&token);
 #endif
 
 			m_endpoint_clusters.resize(0);
@@ -497,6 +501,8 @@ namespace basisu
 			}
 
 			m_block_selector_cluster_index.resize(m_total_blocks);
+
+			token = 0;
 
 			for (uint32_t block_index_iter = 0; block_index_iter < m_total_blocks; block_index_iter += N)
 			{
@@ -538,13 +544,13 @@ namespace basisu
 					}
 
 #ifndef __EMSCRIPTEN__
-					});
+					}, &token);
 #endif
 
 			}
 
 #ifndef __EMSCRIPTEN__
-			m_params.m_pJob_pool->wait_for_all();
+			m_params.m_pJob_pool->wait_for_all(&token);
 #endif
 
 			m_encoded_blocks.resize(m_total_blocks);
@@ -771,6 +777,8 @@ namespace basisu
 				
 		m_etc1_blocks_etc1s.resize(m_total_blocks);
 
+		job_pool::token token{0};
+
 		const uint32_t N = 4096;
 		for (uint32_t block_index_iter = 0; block_index_iter < m_total_blocks; block_index_iter += N)
 		{
@@ -821,13 +829,13 @@ namespace basisu
 				}
 
 #ifndef __EMSCRIPTEN__
-			} );
+			}, &token);
 #endif
 
 		}
 
 #ifndef __EMSCRIPTEN__
-		m_params.m_pJob_pool->wait_for_all();
+		m_params.m_pJob_pool->wait_for_all(&token);
 #endif
 
 		debug_printf("Elapsed time: %3.3f secs\n", tm.get_elapsed_secs());
@@ -840,6 +848,8 @@ namespace basisu
 		vec6F_quantizer::array_of_weighted_training_vecs &training_vecs = m_endpoint_clusterizer.get_training_vecs();
 		
 		training_vecs.resize(m_total_blocks * 2);
+
+		job_pool::token token{0};
 
 		const uint32_t N = 16384;
 		for (uint32_t block_index_iter = 0; block_index_iter < m_total_blocks; block_index_iter += N)
@@ -872,13 +882,13 @@ namespace basisu
 				} // block_index;
 
 #ifndef __EMSCRIPTEN__
-			} );
+			}, &token);
 #endif
 
 		} // block_index_iter
 
 #ifndef __EMSCRIPTEN__
-		m_params.m_pJob_pool->wait_for_all();
+		m_params.m_pJob_pool->wait_for_all(&token);
 #endif
 	}
 
@@ -1014,6 +1024,8 @@ namespace basisu
 	{
 		m_subblock_endpoint_quant_err_vec.resize(0);
 
+		job_pool::token token{0};
+
 		const uint32_t N = 512;
 		for (uint32_t cluster_index_iter = 0; cluster_index_iter < m_endpoint_clusters.size(); cluster_index_iter += N)
 		{
@@ -1091,13 +1103,13 @@ namespace basisu
 				} // cluster_index
 
 #ifndef __EMSCRIPTEN__
-			} );
+			}, &token);
 #endif
 
 		} // cluster_index_iter
 
 #ifndef __EMSCRIPTEN__
-		m_params.m_pJob_pool->wait_for_all();
+		m_params.m_pJob_pool->wait_for_all(&token);
 #endif
 
 		vector_sort(m_subblock_endpoint_quant_err_vec);
@@ -1207,6 +1219,8 @@ namespace basisu
 		debug_printf("generate_endpoint_codebook\n");
 
 		m_endpoint_cluster_etc_params.resize(m_endpoint_clusters.size());
+
+		job_pool::token token{0};
 
 		const uint32_t N = 128;
 		for (uint32_t cluster_index_iter = 0; cluster_index_iter < m_endpoint_clusters.size(); cluster_index_iter += N)
@@ -1336,13 +1350,13 @@ namespace basisu
 				} // cluster_index
 
 #ifndef __EMSCRIPTEN__
-			} );
+			}, &token );
 #endif
 
 		} // cluster_index_iter
 
 #ifndef __EMSCRIPTEN__
-		m_params.m_pJob_pool->wait_for_all();
+		m_params.m_pJob_pool->wait_for_all(&token);
 #endif
 	}
 
@@ -1401,6 +1415,8 @@ namespace basisu
 		// Create a new endpoint clusterization
 
 		uint_vec best_cluster_indices(m_total_blocks);
+
+		job_pool::token token{0};
 
 		const uint32_t N = 1024;
 		for (uint32_t block_index_iter = 0; block_index_iter < m_total_blocks; block_index_iter += N)
@@ -1542,13 +1558,13 @@ namespace basisu
 				} // block_index
 
 #ifndef __EMSCRIPTEN__
-			} );
+			}, &token);
 #endif
 						
 		} // block_index_iter
 
 #ifndef __EMSCRIPTEN__
-		m_params.m_pJob_pool->wait_for_all();
+		m_params.m_pJob_pool->wait_for_all(&token);
 #endif
 
 		basisu::vector<typename basisu::vector<uint32_t> > optimized_endpoint_clusters(m_endpoint_clusters.size());
@@ -1648,6 +1664,8 @@ namespace basisu
 	{
 		debug_printf("create_initial_packed_texture\n");
 
+		job_pool::token token{0};
+
 		const uint32_t N = 4096;
 		for (uint32_t block_index_iter = 0; block_index_iter < m_total_blocks; block_index_iter += N)
 		{
@@ -1682,13 +1700,13 @@ namespace basisu
 				} // block_index
 
 #ifndef __EMSCRIPTEN__
-			} );
+			}, &token);
 #endif
 
 		} // block_index_iter
 
 #ifndef __EMSCRIPTEN__
-		m_params.m_pJob_pool->wait_for_all();
+		m_params.m_pJob_pool->wait_for_all(&token);
 #endif
 
 		m_orig_encoded_blocks = m_encoded_blocks;
@@ -1745,6 +1763,8 @@ namespace basisu
 				
 		vec16F_clusterizer::array_of_weighted_training_vecs training_vecs(m_total_blocks);
 				
+		job_pool::token token{0};
+
 		const uint32_t N = 4096;
 		for (uint32_t block_index_iter = 0; block_index_iter < m_total_blocks; block_index_iter += N)
 		{
@@ -1781,13 +1801,13 @@ namespace basisu
 				} // block_index
 
 #ifndef __EMSCRIPTEN__
-			} );
+			}, &token);
 #endif
 
 		} // block_index_iter
 
 #ifndef __EMSCRIPTEN__
-		m_params.m_pJob_pool->wait_for_all();
+		m_params.m_pJob_pool->wait_for_all(&token);
 #endif
 
 		vec16F_clusterizer selector_clusterizer;
@@ -1876,6 +1896,8 @@ namespace basisu
 
 			m_optimized_cluster_selector_global_cb_ids.resize(total_selector_clusters);
 
+			job_pool::token token{0};
+
 			const uint32_t N = 256;
 			for (uint32_t cluster_index_iter = 0; cluster_index_iter < total_selector_clusters; cluster_index_iter += N)
 			{
@@ -1938,13 +1960,13 @@ namespace basisu
 					} // cluster_index
 
 #ifndef __EMSCRIPTEN__
-				} );
+				}, &token);
 #endif
 
 			} // cluster_index_iter
 
 #ifndef __EMSCRIPTEN__
-			m_params.m_pJob_pool->wait_for_all();
+			m_params.m_pJob_pool->wait_for_all(&token);
 #endif
 		}
 		else
@@ -1959,6 +1981,8 @@ namespace basisu
 			uint32_t total_clusters_processed = 0;
 
 			// For each selector codebook entry, and for each of the 4x4 selectors, determine which selector minimizes the error across all the blocks that use that quantized selector.
+
+			job_pool::token token{0};
 
 			const uint32_t N = 256;
 			for (uint32_t cluster_index_iter = 0; cluster_index_iter < total_selector_clusters; cluster_index_iter += N)
@@ -2083,13 +2107,13 @@ namespace basisu
 					} // cluster_index
 
 #ifndef __EMSCRIPTEN__
-				} );
+				}, &token);
 #endif
 
 			} // cluster_index_iter
 
 #ifndef __EMSCRIPTEN__
-			m_params.m_pJob_pool->wait_for_all();
+			m_params.m_pJob_pool->wait_for_all(&token);
 #endif
 
 		} // if (m_params.m_pGlobal_sel_codebook)
@@ -2176,6 +2200,8 @@ namespace basisu
 				}
 			}
 						
+			job_pool::token token{0};
+
 			const uint32_t N = 1024;
 			for (uint32_t block_index_iter = 0; block_index_iter < m_total_blocks; block_index_iter += N)
 			{
@@ -2317,13 +2343,13 @@ namespace basisu
 				} // block_index
 
 #ifndef __EMSCRIPTEN__
-				} );
+				}, &token);
 #endif
 
 			} // block_index_iter
 
 #ifndef __EMSCRIPTEN__
-			m_params.m_pJob_pool->wait_for_all();
+			m_params.m_pJob_pool->wait_for_all(&token);
 #endif
 
 			for (uint32_t i = 0; i < m_selector_cluster_block_indices.size(); i++)
@@ -2627,6 +2653,8 @@ namespace basisu
 		basisu::vector<uint8_t> cluster_valid(new_endpoint_cluster_block_indices.size());
 		basisu::vector<uint8_t> cluster_improved(new_endpoint_cluster_block_indices.size());
 		
+		job_pool::token token{0};
+
 		const uint32_t N = 256;
 		for (uint32_t cluster_index_iter = 0; cluster_index_iter < new_endpoint_cluster_block_indices.size(); cluster_index_iter += N)
 		{
@@ -2726,13 +2754,13 @@ namespace basisu
 				} // cluster_index
 
 #ifndef __EMSCRIPTEN__
-			} );
+			}, &token);
 #endif
 
 		} // cluster_index_iter
 
 #ifndef __EMSCRIPTEN__
-		m_params.m_pJob_pool->wait_for_all();
+		m_params.m_pJob_pool->wait_for_all(&token);
 #endif
 				
 		uint32_t total_unused_clusters = 0;
