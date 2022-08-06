@@ -2170,7 +2170,7 @@ namespace basisu
 
 		for (uint32_t pindex = 0; pindex < params_vec.size(); pindex++)
 		{
-			jpool.add_job([pindex, &params_vec, &results_vec, &result, &opencl_failed] {
+			jpool.add_job([pindex, &params_vec, &results_vec, &result, &opencl_failed, &jpool] {
 
 				basis_compressor_params params = params_vec[pindex];
 				parallel_results& results = results_vec[pindex];
@@ -2180,9 +2180,7 @@ namespace basisu
 
 				basis_compressor c;
 				
-				// Dummy job pool
-				job_pool task_jpool(1);
-				params.m_pJob_pool = &task_jpool;
+				params.m_pJob_pool = &jpool;
 				// TODO: Remove this flag entirely
 				params.m_multithreading = true; 
 				
