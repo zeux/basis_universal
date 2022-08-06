@@ -40,7 +40,7 @@
 using namespace basisu;
 using namespace buminiz;
 
-#define BASISU_TOOL_VERSION "1.16"
+#define BASISU_TOOL_VERSION "1.16.3"
 
 enum tool_mode
 {
@@ -136,6 +136,7 @@ static void print_usage()
 		" -no_ktx: Disable KTX writing when unpacking (faster, less output files)\n"
 		" -ktx_only: Only write KTX files when unpacking (faster, less output files)\n"
 		" -write_out: Write 3dfx OUT files when unpacking FXT1 textures\n"
+		" -format_only: Only unpack the specified format, by its numeric code.\n"
 		" -etc1_only: Only unpack to ETC1, skipping the other texture formats during -unpack\n"
 		" -disable_hierarchical_endpoint_codebooks: Disable hierarchical endpoint codebook usage, slower but higher quality on some compression levels\n"
 		" -compare_ssim: Compute and display SSIM of image comparison (slow)\n"
@@ -286,6 +287,7 @@ public:
 		m_no_ktx(false),
 		m_ktx_only(false),
 		m_write_out(false),
+		m_format_only(-1),
 		m_etc1_only(false),
 		m_fuzz_testing(false),
 		m_compare_ssim(false),
@@ -613,8 +615,17 @@ public:
 				m_ktx_only = true;
 			else if (strcasecmp(pArg, "-write_out") == 0)
 				m_write_out = true;
+			else if (strcasecmp(pArg, "-format_only") == 0)
+			{
+				REMAINING_ARGS_CHECK(1);
+				m_format_only = atoi(arg_v[arg_index + 1]);
+				arg_count++;
+			}
 			else if (strcasecmp(pArg, "-etc1_only") == 0)
+			{
 				m_etc1_only = true;
+				m_format_only = (int)basist::transcoder_texture_format::cTFETC1_RGB;
+			}
 			else if (strcasecmp(pArg, "-disable_hierarchical_endpoint_codebooks") == 0)
 				m_comp_params.m_disable_hierarchical_endpoint_codebooks = true;
 			else if (strcasecmp(pArg, "-opencl") == 0)
@@ -706,9 +717,15 @@ public:
 					m_individual = false;
 				}
 				else if (strcasecmp(pType, "3d") == 0)
+				{
 					m_comp_params.m_tex_type = basist::cBASISTexTypeVolume;
+					m_individual = false;
+				}
 				else if (strcasecmp(pType, "cubemap") == 0)
+				{
 					m_comp_params.m_tex_type = basist::cBASISTexTypeCubemapArray;
+					m_individual = false;
+				}
 				else if (strcasecmp(pType, "video") == 0)
 				{
 					m_comp_params.m_tex_type = basist::cBASISTexTypeVideoFrames;
@@ -822,6 +839,8 @@ public:
 
 	std::string m_output_filename;
 	std::string m_output_path;
+
+	int m_format_only;
 
 	std::string m_multifile_printf;
 	uint32_t m_multifile_first;
@@ -1074,6 +1093,16 @@ static bool compress_mode(command_line_params &opts)
 	const size_t total_files = (opts.m_individual ? opts.m_input_filenames.size() : 1U);
 	bool result = true;
 
+	if ((opts.m_individual) && (opts.m_output_filename.size()))
+	{
+		if (total_files > 1)
+		{
+			error_printf("-output_file specified in individual mode, but multiple input files have been specified which would cause the output file to be written multiple times.\n");
+			delete pGlobal_codebook_data; pGlobal_codebook_data = nullptr;
+			return false;
+		}
+	}
+
 	for (size_t file_index = 0; file_index < total_files; file_index++)
 	{
 		if (opts.m_individual)
@@ -1102,8 +1131,8 @@ static bool compress_mode(command_line_params &opts)
 			params.m_source_filenames = opts.m_input_filenames;
 			params.m_source_alpha_filenames = opts.m_input_alpha_filenames;
 		}
-
-		if ((opts.m_output_filename.size()) && (!opts.m_individual))
+				
+		if (opts.m_output_filename.size())
 			params.m_out_filename = opts.m_output_filename;
 		else
 		{
@@ -1487,9 +1516,9 @@ static bool unpack_and_validate_ktx2_file(
 	int first_format = 0;
 	int last_format = (int)basist::transcoder_texture_format::cTFTotalTextureFormats;
 
-	if (opts.m_etc1_only)
+	if (opts.m_format_only > -1)
 	{
-		first_format = (int)basist::transcoder_texture_format::cTFETC1_RGB;
+		first_format = opts.m_format_only;
 		last_format = first_format + 1;
 	}
 
@@ -1894,9 +1923,9 @@ static bool unpack_and_validate_basis_file(
 	int first_format = 0;
 	int last_format = (int)basist::transcoder_texture_format::cTFTotalTextureFormats;
 
-	if (opts.m_etc1_only)
+	if (opts.m_format_only > -1)
 	{
-		first_format = (int)basist::transcoder_texture_format::cTFETC1_RGB;
+		first_format = opts.m_format_only;
 		last_format = first_format + 1;
 	}
 
@@ -2028,7 +2057,7 @@ static bool unpack_and_validate_basis_file(
 				// Fill the buffer with psuedo-random bytes, to help more visibly detect cases where the transcoder fails to write to part of the output.
 				fill_buffer_with_random_bytes(gi.get_ptr(), gi.get_size_in_bytes());
 
-				uint32_t decode_flags = 0;
+				//uint32_t decode_flags = 0;
 
 				tm.start();
 
@@ -2239,7 +2268,8 @@ static bool unpack_and_validate_basis_file(
 
 	uint32_t max_mipmap_levels = 0;
 
-	if (!opts.m_etc1_only)
+	//if (!opts.m_etc1_only)
+	if (opts.m_format_only == -1)
 	{
 		// Now unpack to RGBA using the transcoder itself to do the unpacking to raster images
 		for (uint32_t image_index = 0; image_index < fileinfo.m_total_images; image_index++)
@@ -2725,7 +2755,7 @@ static bool compare_mode(command_line_params &opts)
 	{
 		for (uint32_t x = 0; x < a.get_width(); x++)
 		{
-			color_rgba& d = delta_img(x, y);
+			//color_rgba& d = delta_img(x, y);
 
 			for (int c = 0; c < 4; c++)
 			{

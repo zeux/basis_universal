@@ -286,8 +286,8 @@ namespace basisu
 
          if (BASISU_IS_BITWISE_COPYABLE(T))
          {
-            if (m_size > 0)
-               memcpy(m_p, other.m_p, m_size * sizeof(T));
+             if ((m_p) && (other.m_p))
+                memcpy(m_p, other.m_p, m_size * sizeof(T));
          }
          else
          {
@@ -330,8 +330,8 @@ namespace basisu
 
          if (BASISU_IS_BITWISE_COPYABLE(T))
          {
-            if (other.m_size > 0)
-               memcpy(m_p, other.m_p, other.m_size * sizeof(T));
+             if ((m_p) && (other.m_p))
+                memcpy(m_p, other.m_p, other.m_size * sizeof(T));
          }
          else
          {
