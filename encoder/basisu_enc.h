@@ -17,7 +17,6 @@
 #include "../transcoder/basisu_transcoder_internal.h"
 
 #include <mutex>
-#include <atomic>
 #include <condition_variable>
 #include <functional>
 #include <thread>
@@ -696,7 +695,7 @@ namespace basisu
 		BASISU_NO_EQUALS_OR_COPY_CONSTRUCT(job_pool);
 
 	public:
-		using token = std::atomic<uint32_t>;
+		using token = uint32_t;
 
 		// num_threads is the TOTAL number of job pool threads, including the calling thread! So 2=1 new thread, 3=2 new threads, etc.
 		job_pool(uint32_t num_threads);
@@ -721,8 +720,8 @@ namespace basisu
 		std::condition_variable m_has_work;
 		std::condition_variable m_job_done;
 
-		std::atomic<uint32_t> m_num_pending_jobs;
-		std::atomic<bool> m_kill_flag;
+		uint32_t m_num_pending_jobs;
+		bool m_kill_flag;
 
 		bool job_steal(item& job, token* tok, std::unique_lock<std::mutex>& lock);
 		void job_run(item& job, std::unique_lock<std::mutex>& lock);

@@ -1525,9 +1525,11 @@ namespace basisu
 		debug_printf("job_pool::~job_pool\n");
 		
 		// Notify all workers that they need to die right now.
-		m_kill_flag = true;
-		
-		m_has_work.notify_all();
+		{
+			std::unique_lock<std::mutex> lock(m_mutex);
+			m_kill_flag = true;
+			m_has_work.notify_all();
+		}
 
 		// Wait for all workers to die.
 		for (uint32_t i = 0; i < m_threads.size(); i++)
@@ -1536,15 +1538,15 @@ namespace basisu
 				
 	void job_pool::add_job(std::function<void()> job, token* tok)
 	{
-		if (tok)
-			tok->fetch_add(1, std::memory_order_relaxed);
-
-		m_num_pending_jobs.fetch_add(1, std::memory_order_relaxed);
-
 		{
 			std::unique_lock<std::mutex> lock(m_mutex);
 
 			m_queue.push_back(item{ std::move(job), tok });
+
+			if (tok)
+				(*tok)++;
+
+			m_num_pending_jobs++;
 		}
 
 		m_has_work.notify_one();
@@ -1558,7 +1560,7 @@ namespace basisu
 
 		while (true)
 		{
-			if (wait_token->load(std::memory_order_acquire) == 0)
+			if (*wait_token == 0)
 				return;
 
 			item job;
@@ -1568,7 +1570,7 @@ namespace basisu
 			job_run(job, lock);
 		}
 
-		m_job_done.wait(lock, [wait_token] { return wait_token->load(std::memory_order_acquire) == 0; });
+		m_job_done.wait(lock, [wait_token] { return *wait_token == 0; });
 	}
 
 	bool job_pool::job_steal(item& job, token* tok, std::unique_lock<std::mutex>&)
@@ -1596,14 +1598,14 @@ namespace basisu
 
 		job.fn();
 
-		if (job.tok)
-			job.tok->fetch_sub(1, std::memory_order_release);
+		lock.lock();
 
-		m_num_pending_jobs.fetch_sub(1, std::memory_order_release);
+		if (job.tok)
+			(*job.tok)--;
+
+		m_num_pending_jobs--;
 
 		m_job_done.notify_all();
-
-		lock.lock();
 	}
 
 	void job_pool::job_thread(uint32_t index)
